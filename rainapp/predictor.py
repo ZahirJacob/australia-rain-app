@@ -32,7 +32,7 @@ DROPPED_COLUMNS = ("Unnamed: 0", "RainTomorrow", "RainfallTomorrow", "Region")
 
 COMPASS_POINTS = frozenset(
     "N NNE NE ENE E ESE SE SSE S SSW SW WSW W WNW NW NNW".split()
-)
+)  # weather_source.COMPASS must stay consistent with this (tested)
 YES_NO = frozenset({"Yes", "No"})
 # Vocabulary the OneHotEncoder was fitted on. Anything else would become an
 # all-zero one-hot block never seen in training, so it is mapped to NaN and

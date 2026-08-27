@@ -79,7 +79,7 @@ Input caveats (inherited from the original pipeline, which does the same):
 Nobody will type 20 Bureau-of-Meteorology-style observations into a form, so
 `rainapp.weather_source.fetch_day(station, date)` builds the model's input
 record from [Open-Meteo](https://open-meteo.com) (free, no API key): archive
-endpoint for past dates, forecast endpoint for the last few days and today.
+endpoint for past dates, forecast endpoint for the last week and today.
 
 ```python
 from rainapp import load_default_predictor
@@ -90,6 +90,17 @@ load_default_predictor().predict_one(record)
 # {'rain_tomorrow': 'No', 'probability': 0.260..., 'threshold': 0.5957959890365601}
 ```
 
+The adapter reproduces BoM daily-observation semantics, which the training
+data uses: `Rainfall`, `MinTemp` and `Evaporation` are the 24 h **ending 09:00
+local**, `MaxTemp`/`Sunshine`/gusts the local calendar day, `*9am`/`*3pm` the
+local 09:00/15:00 hours. This matters because `RainTomorrow(D)` equals
+`RainToday(D+1)` in the dataset, i.e. the label window starts at 09:00 today —
+a midnight-to-midnight rainfall sum would leak part of it into the features.
+All aggregates are computed from hourly data requested in UTC and converted
+to true local time (Open-Meteo applies one fixed offset per response, with no
+daylight-saving changes, so its "local" hours are off by one for half the
+year in NSW/VIC/TAS/SA/ACT).
+
 Open-Meteo values are gridded reanalysis/model estimates, not the instrument
 readings the model was trained on. `scripts/evaluate_api_shift.py` measures
 the cost on 12 stations × every day of 2016 (4,214 days), predicting the same
@@ -98,20 +109,21 @@ days from BoM observations and from Open-Meteo:
 | Input source | F1 (positive) | Precision | Recall |
 |---|---|---|---|
 | BoM observations (native) | 0.664 | 0.673 | 0.656 |
-| Open-Meteo, `Evaporation` missing (default) | 0.631 | 0.608 | 0.656 |
-| Open-Meteo, `Evaporation` = ET0 | 0.637 | 0.618 | 0.657 |
+| Open-Meteo, `Evaporation` missing (default) | 0.624 | 0.599 | 0.651 |
+| Open-Meteo, `Evaporation` = ET0 | 0.628 | 0.606 | 0.652 |
 
 Labels agree between the two sources on 88% of days; the API costs about
-0.03 F1, entirely as extra false positives. Per station (F1 BoM → API): Perth
-0.79 → 0.75, Adelaide 0.77 → 0.75, Melbourne 0.67 → 0.67, Sydney 0.64 → 0.59,
-Brisbane 0.69 → 0.56, Darwin 0.68 → 0.55, Canberra 0.55 → 0.66.
+0.04 F1, almost entirely as extra false positives. Per station (F1 BoM → API):
+Perth 0.79 → 0.75, Adelaide 0.77 → 0.75, Melbourne 0.67 → 0.67, Albury
+0.69 → 0.65, Sydney 0.64 → 0.56, Brisbane 0.69 → 0.57, Darwin 0.68 → 0.53,
+Canberra 0.55 → 0.62.
 
-Where the two sources disagree most: `Rainfall` (correlation 0.42 — gridded
-precipitation is a poor proxy for a rain gauge), the three wind directions
-(exact 16-point match only ~30%), and wind speeds (corr ≈ 0.5). Pressure
-(corr 0.995) and temperatures (0.96–0.98) transfer almost perfectly.
-Pan `Evaporation` has no Open-Meteo equivalent and is left missing by default
-(ET0 is a different quantity; using it anyway gains +0.006 F1, within noise).
+Where the two sources disagree most: `Rainfall` (correlation 0.59 — gridded
+precipitation vs a rain gauge), the three wind directions (exact 16-point
+match only ~30%), and wind speeds (corr ≈ 0.5). Pressure (corr 0.996) and
+temperatures (0.97–0.98) transfer almost perfectly. Pan `Evaporation` has no
+Open-Meteo equivalent and is left missing by default (ET0 is a different
+quantity; using it anyway gains +0.004 F1, within noise).
 
 Caveat: 2016 overlaps the academic project's development/test split, so these
 are not held-out accuracies — only the *gap* between input sources is the

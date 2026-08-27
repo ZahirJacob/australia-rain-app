@@ -24,6 +24,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import confusion_matrix, f1_score, precision_score, recall_score
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
@@ -35,13 +36,11 @@ DEFAULT_STATIONS = ["Sydney", "Melbourne", "Brisbane", "Perth", "Adelaide", "Hob
 
 
 def f1_report(y: np.ndarray, pred: np.ndarray) -> dict[str, float]:
-    tp = int(((y == 1) & (pred == 1)).sum()); fp = int(((y == 0) & (pred == 1)).sum())
-    fn = int(((y == 1) & (pred == 0)).sum()); tn = int(((y == 0) & (pred == 0)).sum())
-    precision = tp / (tp + fp) if tp + fp else 0.0
-    recall = tp / (tp + fn) if tp + fn else 0.0
-    f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
-    return {"f1": round(f1, 4), "precision": round(precision, 4), "recall": round(recall, 4),
-            "tp": tp, "fp": fp, "fn": fn, "tn": tn}
+    tn, fp, fn, tp = confusion_matrix(y, pred, labels=[0, 1]).ravel()
+    return {"f1": round(float(f1_score(y, pred, zero_division=0)), 4),
+            "precision": round(float(precision_score(y, pred, zero_division=0)), 4),
+            "recall": round(float(recall_score(y, pred, zero_division=0)), 4),
+            "tp": int(tp), "fp": int(fp), "fn": int(fn), "tn": int(tn)}
 
 
 def main() -> None:
@@ -63,7 +62,10 @@ def main() -> None:
         bom = data[(data["Location"] == station) & (data["Date"] >= start.isoformat()) & (data["Date"] <= end.isoformat())]
         if bom.empty:
             print(f"{station}: no BoM rows in {args.year}, skipped"); continue
-        api = pd.DataFrame(ws.fetch_range(station, start, end, evaporation=args.evaporation)).set_index("Date")
+        records = ws.fetch_range(station, start, end, evaporation=args.evaporation)
+        if not records:
+            print(f"{station}: weather API returned no usable days, skipped"); continue
+        api = pd.DataFrame(records).set_index("Date")
         common = bom[bom["Date"].isin(api.index)]
         api = api.loc[common["Date"].to_numpy()].reset_index()
         y = common["RainTomorrow"].map({"No": 0, "Yes": 1}).to_numpy()
