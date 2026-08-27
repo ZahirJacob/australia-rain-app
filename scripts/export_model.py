@@ -44,12 +44,27 @@ def extract_layers(keras_path: Path) -> dict[str, np.ndarray]:
             group = f["layers"][name]["vars"]
             tensors[f"{name}/kernel"] = group["0"][()]
             tensors[f"{name}/bias"] = group["1"][()]
-    # Sanity-check the architecture we hard-code in rainapp/model.py.
+    # Sanity-check the architecture we hard-code in rainapp/model.py: only
+    # Input/Dense/Dropout layers (anything else carries parameters we would
+    # silently drop), the expected activations, and a consistent shape chain.
     layers = config["config"]["layers"]
+    kinds = [l["class_name"] for l in layers]
+    if set(kinds) - {"InputLayer", "Dense", "Dropout"}:
+        raise RuntimeError(f"unsupported layer types: {sorted(set(kinds) - {'InputLayer', 'Dense', 'Dropout'})}")
     dense = [l for l in layers if l["class_name"] == "Dense"]
+    if [l["config"]["name"] for l in dense] != list(LAYER_NAMES):
+        raise RuntimeError("dense layer names/order differ from the expected 4-layer stack")
     activations = [l["config"]["activation"] for l in dense]
     if activations != ["relu", "relu", "relu", "sigmoid"]:
         raise RuntimeError(f"unexpected activations: {activations}")
+    expected_in = 80
+    for name in LAYER_NAMES:
+        kernel, bias = tensors[f"{name}/kernel"], tensors[f"{name}/bias"]
+        if kernel.ndim != 2 or kernel.shape[0] != expected_in or bias.shape != (kernel.shape[1],):
+            raise RuntimeError(f"shape chain broken at {name}: kernel {kernel.shape}, bias {bias.shape}")
+        expected_in = kernel.shape[1]
+    if expected_in != 1:
+        raise RuntimeError("network must end in a single output unit")
     return tensors
 
 

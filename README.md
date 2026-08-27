@@ -22,7 +22,7 @@ What this repository adds is entirely downstream of those frozen artifacts:
 |---|---|
 | `model/preprocessor.joblib` | byte-identical copy of `artifacts/selected_nn_preprocessor.joblib` (SHA-256 `4bca0f30…`) |
 | `model/nn_weights.npz` | the 8 layer tensors extracted from `artifacts/selected_nn_model.keras` (SHA-256 `041251e4…`) by `scripts/export_model.py` |
-| `weather_preprocessing.py` | verbatim copy of `src/weather_preprocessing.py`; required under that module name to unpickle the preprocessor |
+| `rainapp/weather_preprocessing.py` | verbatim copy of `src/weather_preprocessing.py`; registered in `sys.modules` under the original top-level name so the pickled preprocessor resolves its class |
 | `rainapp/` | new: numpy forward pass, input coercion, single-load predictor |
 | `scripts/verify_parity.py` | new: proves the numpy path reproduces the Keras model exactly |
 
@@ -48,7 +48,7 @@ from rainapp import load_default_predictor
 predictor = load_default_predictor()          # loads artifacts once
 predictor.predict_one({"Date": "2015-06-10", "Location": "Sydney",
                        "Humidity3pm": 90, "RainToday": "Yes"})
-# {'rain_tomorrow': 'Yes', 'probability': 0.8..., 'threshold': 0.5957959890365601}
+# {'rain_tomorrow': 'Yes', 'probability': 0.7702456116676331, 'threshold': 0.5957959890365601}
 ```
 
 Any of the 22 input columns may be missing or `None`; the preprocessor
@@ -57,10 +57,14 @@ imputes them with the statistics it learned in training. `Date` (→ season) and
 
 Input caveats (inherited from the original pipeline, which does the same):
 
-* `Location` must match one of the 49 station names exactly (`Albury`, not
-  `albury`); unknown names silently fall back to the default region.
-* `RainToday` must be `"Yes"`/`"No"`; other spellings are treated as unknown.
-* Wind directions must be one of the 16 compass points (`W`, `WNW`, ...).
+* `Date` and `Location` are required in every row (ValueError otherwise).
+* `Location` is matched case-insensitively against the 49 station names;
+  unknown names are accepted and silently fall back to the default region.
+* `RainToday` (`Yes`/`No`) and the wind directions (16 compass points) are
+  normalised for case/whitespace; any other value is treated as missing and
+  imputed, never fed to the model as an unseen category.
+* Numeric fields are coerced; unparseable text (e.g. `"13.6C"`) becomes
+  missing. Lists or other non-scalar cells raise ValueError.
 * **Imputation of `Evaporation`, `Cloud9am` and `Cloud3pm` is KNN-based and
   can depend on batch composition**: for ~4–5% of rows the probability differs
   (by up to ~0.09) between predicting the row alone and inside a larger batch,

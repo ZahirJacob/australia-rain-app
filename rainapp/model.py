@@ -21,6 +21,7 @@ def _relu(x: np.ndarray) -> np.ndarray:
 
 def _sigmoid(x: np.ndarray) -> np.ndarray:
     # Numerically stable: never exponentiates a large positive number.
+    x = np.asarray(x, dtype=np.float32)  # int input would otherwise truncate to 0/1
     positive = x >= 0
     out = np.empty_like(x)
     out[positive] = 1.0 / (1.0 + np.exp(-x[positive]))
