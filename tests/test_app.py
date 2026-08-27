@@ -117,3 +117,8 @@ def test_invalid_browser_payload_falls_back_to_server(monkeypatch):
 def test_browser_js_embeds_config():
     assert '"Sydney": [' in app.BROWSER_FETCH_JS and "precipitation" in app.BROWSER_FETCH_JS
     assert app.ARCHIVE_URL in app.BROWSER_FETCH_JS and app.FORECAST_URL in app.BROWSER_FETCH_JS
+
+
+def test_browser_js_is_valid_javascript():
+    esprima = pytest.importorskip("esprima")
+    esprima.parseScript("const f = " + app.BROWSER_FETCH_JS + ";")

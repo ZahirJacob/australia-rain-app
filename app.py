@@ -43,7 +43,7 @@ SOURCE_TEXT = {
 BROWSER_FETCH_JS = """
 async (station, date) => {
   const stations = %(stations)s;
-  const hourly = %(hourly)s;
+  const hourly = "%(hourly)s";
   try {
     const coords = stations[station];
     if (!coords || !/^\\s*\\d{4}-\\d{2}-\\d{2}\\s*$/.test(date)) return "";
