@@ -40,14 +40,19 @@ SOURCE_TEXT = {
 # The visitor's browser fetches Open-Meteo directly (its own IP and quota;
 # the free tier is rate-limited per IP, and a shared hosting IP exhausts it).
 # The server-side fetch remains as the fallback when the browser call fails.
+# Gradio runs this `js` function BEFORE the Python handler of the same event and
+# feeds its returned list to the handler as its inputs: (station, date, payload).
+# (A separate fn=None JS event chained with .then() never fires the .then in
+# Gradio 5.50 - verified with a minimal app - so both must be on one event.)
 _BROWSER_CFG = json.dumps({
     "stations": STATIONS, "timezones": TIMEZONES, "hourly": ",".join(HOURLY),
     "archiveDelayDays": ARCHIVE_DELAY_DAYS, "forecastPastLimitDays": FORECAST_PAST_LIMIT_DAYS,
     "archiveUrl": ARCHIVE_URL, "forecastUrl": FORECAST_URL, "timeoutMs": 15000,
 })
 BROWSER_FETCH_JS = r"""
-async (station, date) => {
+async (station, date, previousPayload) => {
   const cfg = __CFG__;
+  const done = (payload) => [station, date, payload];
   const fetchJson = async (base, prevIso, dayIso, coords) => {
     const url = base + "?latitude=" + coords[0] + "&longitude=" + coords[1] + "&timezone=UTC"
       + "&hourly=" + cfg.hourly + "&start_date=" + prevIso + "&end_date=" + dayIso;
@@ -59,14 +64,14 @@ async (station, date) => {
                             && j.hourly.temperature_2m.some((v) => v !== null));
   try {
     const coords = cfg.stations[station];
-    if (!coords || !/^\s*\d{4}-\d{2}-\d{2}\s*$/.test(date)) return "";
+    if (!coords || !/^\s*\d{4}-\d{2}-\d{2}\s*$/.test(date)) return done("");
     const dayIso = date.trim();
     const day = new Date(dayIso + "T00:00:00Z");
-    if (isNaN(day) || day.toISOString().slice(0, 10) !== dayIso) return "";
+    if (isNaN(day) || day.toISOString().slice(0, 10) !== dayIso) return done("");
     // "today" at the station, same rule as the server (station_today)
     const todayIso = new Date().toLocaleDateString("en-CA", { timeZone: cfg.timezones[station] });
     const ageDays = Math.round((new Date(todayIso + "T00:00:00Z").getTime() - day.getTime()) / 86400000);
-    if (ageDays < 0) return "";
+    if (ageDays < 0) return done("");
     const prevIso = new Date(day.getTime() - 86400000).toISOString().slice(0, 10);
     let source = ageDays >= cfg.archiveDelayDays ? "archive" : "forecast";
     let body = await fetchJson(source === "archive" ? cfg.archiveUrl : cfg.forecastUrl, prevIso, dayIso, coords);
@@ -74,9 +79,9 @@ async (station, date) => {
       source = "forecast";
       body = await fetchJson(cfg.forecastUrl, prevIso, dayIso, coords);
     }
-    if (!hasData(body)) return "";
-    return JSON.stringify({ source: source, body: body });
-  } catch (e) { return ""; }
+    if (!hasData(body)) return done("");
+    return done(JSON.stringify({ source: source, body: body }));
+  } catch (e) { return done(""); }
 }
 """.replace("__CFG__", _BROWSER_CFG)
 
@@ -276,8 +281,7 @@ with gr.Blocks(title="Australia rain tomorrow") as demo:
             redo = gr.Button("Re-predict with edited inputs")
 
         station.change(sync_date, [station, date], date)
-        go.click(fn=None, inputs=[station, date], outputs=[browser_payload], js=BROWSER_FETCH_JS).then(
-            fetch_and_predict, [station, date, browser_payload], [label, summary, table, note])
+        go.click(fetch_and_predict, [station, date, browser_payload], [label, summary, table, note], js=BROWSER_FETCH_JS)
         redo.click(repredict, [station, date, table], [label, summary])
 
     with gr.Tab("Manual entry"):

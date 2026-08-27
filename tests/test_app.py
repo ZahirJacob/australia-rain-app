@@ -145,6 +145,9 @@ def test_browser_js_embeds_config():
     assert app.ARCHIVE_URL in app.BROWSER_FETCH_JS and app.FORECAST_URL in app.BROWSER_FETCH_JS
 
 
-def test_browser_js_is_valid_javascript():
+def test_browser_js_is_valid_javascript_and_returns_input_list():
     esprima = pytest.importorskip("esprima")
     esprima.parseScript("const f = " + app.BROWSER_FETCH_JS + ";")
+    # Gradio feeds the JS return list to the Python handler as (station, date, payload)
+    assert "async (station, date, previousPayload)" in app.BROWSER_FETCH_JS
+    assert "[station, date, payload]" in app.BROWSER_FETCH_JS
