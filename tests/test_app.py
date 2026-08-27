@@ -1,5 +1,6 @@
 """Offline tests for the Gradio app's helper functions (no server, no network)."""
 
+import datetime as dt
 import json
 from pathlib import Path
 
@@ -90,32 +91,57 @@ def test_default_date_is_station_local_iso():
 # ---- browser-side fetch ------------------------------------------------------
 
 FIXTURE_TEXT = (Path(__file__).parent / "fixtures" / "open_meteo_utc_sydney_2016-06-10.json").read_text()
+WRAPPED = json.dumps({"source": "archive", "body": json.loads(FIXTURE_TEXT)})
 
 
 def test_browser_payload_is_used_without_server_fetch(monkeypatch):
     def boom(*a, **k):
         raise AssertionError("server fetch must not be called when the browser payload is valid")
     monkeypatch.setattr(app, "fetch_day_with_source", boom)
-    label, summary, table, note = app.fetch_and_predict("Sydney", "2016-06-10", FIXTURE_TEXT)
-    assert "fetched by your browser" in note
+    label, summary, table, note = app.fetch_and_predict("Sydney", "2016-06-10", WRAPPED)
+    assert "fetched by your browser" in note and "archive" in note
     assert label["P(rain tomorrow)"] == pytest.approx(0.2604687511920929, abs=1e-6)
 
 
-def test_invalid_browser_payload_falls_back_to_server(monkeypatch):
+def test_browser_payload_keeps_endpoint_provenance():
+    note = app.fetch_and_predict("Sydney", "2016-06-10", json.dumps({"source": "forecast", "body": json.loads(FIXTURE_TEXT)}))[3]
+    assert "short-range forecast" in note and "fetched by your browser" in note
+
+
+def test_unusable_browser_payloads_fall_back_to_server(monkeypatch):
     calls = []
     def fake(station, date, **k):
         calls.append(station)
-        rec = app.map_payload(json.loads(FIXTURE_TEXT), station, app._coerce_date(date))
-        return rec, "archive"
+        return app.map_payload(json.loads(FIXTURE_TEXT), station, dt.date(2016, 6, 10)), "archive"
     monkeypatch.setattr(app, "fetch_day_with_source", fake)
-    for bad in ("", "not json", '{"hourly": {}}', '{"error": true, "reason": "limit"}'):
-        _, _, _, note = app.fetch_and_predict("Sydney", "2016-06-10", bad)
-        assert "archive" in note
-    assert len(calls) == 4
+    body = json.loads(FIXTURE_TEXT)
+    wrong_station = json.dumps({"source": "archive", "body": {**body, "latitude": -37.81, "longitude": 144.96}})  # Melbourne
+    bad = ["", "not json", FIXTURE_TEXT,                                   # raw body without wrapper
+           '{"source": "archive", "body": {"hourly": {}}}',
+           '{"source": "hacked", "body": %s}' % FIXTURE_TEXT,
+           wrong_station,
+           "[]", "null", '"abc"', '{"source": "archive", "body": []}',
+           '{"source": "archive", "body": {"latitude": -33.85, "longitude": 151.2, "hourly": "x"}}',
+           '{"source": "archive", "body": {"latitude": -33.85, "longitude": 151.2, "hourly": {"time": ["2016-06-10T00:00"], "temperature_2m": {"a": 1}}}}',
+           '{"source": "archive", "body": {"latitude": -33.85, "longitude": 151.2, "hourly": {"time": ["2016-06-10T00:00"], "wind_direction_10m": ["abc"]}}}']
+    for payload in bad:
+        _, _, _, note = app.fetch_and_predict("Sydney", "2016-06-10", payload)
+        assert "fetched by your browser" not in note
+    # payload for another day than requested
+    _, _, _, note = app.fetch_and_predict("Sydney", "2016-06-12", WRAPPED)
+    assert "fetched by your browser" not in note
+    assert len(calls) == len(bad) + 1
+
+
+def test_future_date_with_browser_payload_is_rejected():
+    import gradio as gr
+    with pytest.raises(gr.Error, match="future"):
+        app.fetch_and_predict("Sydney", "2031-01-01", WRAPPED)
 
 
 def test_browser_js_embeds_config():
     assert '"Sydney": [' in app.BROWSER_FETCH_JS and "precipitation" in app.BROWSER_FETCH_JS
+    assert "Australia/Sydney" in app.BROWSER_FETCH_JS and "AbortSignal.timeout" in app.BROWSER_FETCH_JS
     assert app.ARCHIVE_URL in app.BROWSER_FETCH_JS and app.FORECAST_URL in app.BROWSER_FETCH_JS
 
 
