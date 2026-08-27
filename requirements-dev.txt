@@ -3,3 +3,4 @@ h5py>=3.10        # only for scripts/export_model.py (reads the .keras zip)
 pytest>=8
 gradio_client>=1.0   # tests/manual API checks against a running app
 esprima>=4.0         # tests: parses the browser-side JS
+playwright>=1.45     # tests/test_browser.py (run: playwright install chromium)
