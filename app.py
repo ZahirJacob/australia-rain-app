@@ -86,7 +86,7 @@ def fetch_and_predict(station: str, date: str):
     source = ("Open-Meteo archive (ERA5 reanalysis)" if age >= 7
               else "Open-Meteo forecast endpoint (observations + short-range forecast for hours not yet elapsed)")
     note = (f"Inputs for **{station}** on **{record['Date']}** from {source}. "
-            "Edit any value below and press *Re-predict with edited inputs*. "
+            "Expand *Model inputs* below to see or edit them and re-predict. "
             "Evaporation is left empty on purpose (no equivalent in the API) and is imputed by the model.")
     return label, summary, _record_to_table(record), note
 
@@ -159,9 +159,10 @@ with gr.Blocks(title="Australia rain tomorrow") as demo:
             label = gr.Label(label="Probability of rain tomorrow")
             summary = gr.Markdown()
         note = gr.Markdown()
-        table = gr.Dataframe(headers=["Field", "Value", "Unit / meaning"], datatype=["str", "str", "str"],
-                             interactive=True, label="Model inputs (editable)", row_count=(len(EDITABLE), "fixed"))
-        redo = gr.Button("Re-predict with edited inputs")
+        with gr.Accordion("Model inputs (auto-filled from the weather API — expand to inspect or edit)", open=False):
+            table = gr.Dataframe(headers=["Field", "Value", "Unit / meaning"], datatype=["str", "str", "str"],
+                                 interactive=True, label="Model inputs (editable)", row_count=(len(EDITABLE), "fixed"))
+            redo = gr.Button("Re-predict with edited inputs")
 
         station.change(default_date, station, date)
         go.click(fetch_and_predict, [station, date], [label, summary, table, note])
