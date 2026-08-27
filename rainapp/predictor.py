@@ -76,6 +76,14 @@ class RainPredictor:
 
     # -------------------------------------------------------------- inference
     def predict_proba(self, records) -> np.ndarray:
+        """P(RainTomorrow=Yes) per row.
+
+        Note: the preprocessor's KNN imputation (Evaporation, Cloud9am,
+        Cloud3pm) breaks distance ties in a batch-shape-dependent way, so a row
+        with those fields missing can receive a slightly different probability
+        alone vs. inside a batch (~4-5% of rows, max ~0.09 seen). A single row
+        is deterministic. Inherited from the original pipeline.
+        """
         frame = self.as_frame(records)
         features = self.preprocessor.transform(frame)
         probabilities = self.network.predict_proba(features)

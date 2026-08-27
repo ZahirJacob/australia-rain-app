@@ -52,8 +52,21 @@ predictor.predict_one({"Date": "2015-06-10", "Location": "Sydney",
 ```
 
 Any of the 22 input columns may be missing or `None`; the preprocessor
-imputes them exactly as it did in training. `Date` (→ season) and `Location`
-(→ climatic region) are the only fields that materially need a value.
+imputes them with the statistics it learned in training. `Date` (→ season) and
+`Location` (→ climatic region) are the only fields that materially need a value.
+
+Input caveats (inherited from the original pipeline, which does the same):
+
+* `Location` must match one of the 49 station names exactly (`Albury`, not
+  `albury`); unknown names silently fall back to the default region.
+* `RainToday` must be `"Yes"`/`"No"`; other spellings are treated as unknown.
+* Wind directions must be one of the 16 compass points (`W`, `WNW`, ...).
+* **Imputation of `Evaporation`, `Cloud9am` and `Cloud3pm` is KNN-based and
+  can depend on batch composition**: for ~4–5% of rows the probability differs
+  (by up to ~0.09) between predicting the row alone and inside a larger batch,
+  because equidistant training neighbours are tie-broken differently. A single
+  row is always deterministic. The parity check above uses the same batching
+  as the academic evaluation.
 
 ## Development
 
