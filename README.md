@@ -25,6 +25,8 @@ What this repository adds is entirely downstream of those frozen artifacts:
 | `rainapp/weather_preprocessing.py` | verbatim copy of `src/weather_preprocessing.py`; registered in `sys.modules` under the original top-level name so the pickled preprocessor resolves its class |
 | `rainapp/` | new: numpy forward pass, input coercion, single-load predictor |
 | `scripts/verify_parity.py` | new: proves the numpy path reproduces the Keras model exactly |
+| `rainapp/weather_source.py`, `rainapp/stations.py` | new: Open-Meteo adapter and the 49 station coordinates |
+| `scripts/evaluate_api_shift.py` | new: measures the BoM → Open-Meteo input shift |
 
 `model/manifest.json` records the SHA-256 of every source artifact.
 
@@ -72,6 +74,50 @@ Input caveats (inherited from the original pipeline, which does the same):
   row is always deterministic. The parity check above uses the same batching
   as the academic evaluation.
 
+## Weather data source (Open-Meteo)
+
+Nobody will type 20 Bureau-of-Meteorology-style observations into a form, so
+`rainapp.weather_source.fetch_day(station, date)` builds the model's input
+record from [Open-Meteo](https://open-meteo.com) (free, no API key): archive
+endpoint for past dates, forecast endpoint for the last few days and today.
+
+```python
+from rainapp import load_default_predictor
+from rainapp.weather_source import fetch_day
+
+record = fetch_day("Sydney", "2016-06-10")
+load_default_predictor().predict_one(record)
+# {'rain_tomorrow': 'No', 'probability': 0.260..., 'threshold': 0.5957959890365601}
+```
+
+Open-Meteo values are gridded reanalysis/model estimates, not the instrument
+readings the model was trained on. `scripts/evaluate_api_shift.py` measures
+the cost on 12 stations × every day of 2016 (4,214 days), predicting the same
+days from BoM observations and from Open-Meteo:
+
+| Input source | F1 (positive) | Precision | Recall |
+|---|---|---|---|
+| BoM observations (native) | 0.664 | 0.673 | 0.656 |
+| Open-Meteo, `Evaporation` missing (default) | 0.631 | 0.608 | 0.656 |
+| Open-Meteo, `Evaporation` = ET0 | 0.637 | 0.618 | 0.657 |
+
+Labels agree between the two sources on 88% of days; the API costs about
+0.03 F1, entirely as extra false positives. Per station (F1 BoM → API): Perth
+0.79 → 0.75, Adelaide 0.77 → 0.75, Melbourne 0.67 → 0.67, Sydney 0.64 → 0.59,
+Brisbane 0.69 → 0.56, Darwin 0.68 → 0.55, Canberra 0.55 → 0.66.
+
+Where the two sources disagree most: `Rainfall` (correlation 0.42 — gridded
+precipitation is a poor proxy for a rain gauge), the three wind directions
+(exact 16-point match only ~30%), and wind speeds (corr ≈ 0.5). Pressure
+(corr 0.995) and temperatures (0.96–0.98) transfer almost perfectly.
+Pan `Evaporation` has no Open-Meteo equivalent and is left missing by default
+(ET0 is a different quantity; using it anyway gains +0.006 F1, within noise).
+
+Caveat: 2016 overlaps the academic project's development/test split, so these
+are not held-out accuracies — only the *gap* between input sources is the
+point. Full numbers: `artifacts/api_shift_2016_evap_missing.json` and
+`..._et0.json`.
+
 ## Development
 
 ```
@@ -83,5 +129,5 @@ python scripts/verify_parity.py --source ../australia-rain-prediction
 ## Roadmap
 
 1. ~~TensorFlow-free inference with verified parity~~
-2. Weather-data adapter (Open-Meteo) so users only pick a station and a date
+2. ~~Weather-data adapter (Open-Meteo) so users only pick a station and a date~~
 3. Gradio UI, deployed on Hugging Face Spaces

@@ -1,0 +1,450 @@
+{
+  "year": 2016,
+  "stations": [
+    "Sydney",
+    "Melbourne",
+    "Brisbane",
+    "Perth",
+    "Adelaide",
+    "Hobart",
+    "Darwin",
+    "Cairns",
+    "AliceSprings",
+    "Canberra",
+    "Albury",
+    "Townsville"
+  ],
+  "days": 4214,
+  "evaporation": "missing",
+  "pooled": {
+    "api": {
+      "f1": 0.6307,
+      "precision": 0.6078,
+      "recall": 0.6555,
+      "tp": 643,
+      "fp": 415,
+      "fn": 338,
+      "tn": 2818
+    },
+    "bom": {
+      "f1": 0.6639,
+      "precision": 0.6726,
+      "recall": 0.6555,
+      "tp": 643,
+      "fp": 313,
+      "fn": 338,
+      "tn": 2920
+    },
+    "label_agreement_api_vs_bom": 0.8776,
+    "mean_abs_prob_diff": 0.1053
+  },
+  "per_station": {
+    "Sydney": {
+      "days": 366,
+      "positive_rate": 0.238,
+      "api": {
+        "f1": 0.5912,
+        "precision": 0.6528,
+        "recall": 0.5402,
+        "tp": 47,
+        "fp": 25,
+        "fn": 40,
+        "tn": 254
+      },
+      "bom": {
+        "f1": 0.6424,
+        "precision": 0.6795,
+        "recall": 0.6092,
+        "tp": 53,
+        "fp": 25,
+        "fn": 34,
+        "tn": 254
+      },
+      "label_agreement_api_vs_bom": 0.8689,
+      "mean_abs_prob_diff": 0.0971
+    },
+    "Melbourne": {
+      "days": 246,
+      "positive_rate": 0.321,
+      "api": {
+        "f1": 0.6667,
+        "precision": 0.6105,
+        "recall": 0.7342,
+        "tp": 58,
+        "fp": 37,
+        "fn": 21,
+        "tn": 130
+      },
+      "bom": {
+        "f1": 0.6707,
+        "precision": 0.6471,
+        "recall": 0.6962,
+        "tp": 55,
+        "fp": 30,
+        "fn": 24,
+        "tn": 137
+      },
+      "label_agreement_api_vs_bom": 0.8943,
+      "mean_abs_prob_diff": 0.0902
+    },
+    "Brisbane": {
+      "days": 363,
+      "positive_rate": 0.215,
+      "api": {
+        "f1": 0.5641,
+        "precision": 0.5641,
+        "recall": 0.5641,
+        "tp": 44,
+        "fp": 34,
+        "fn": 34,
+        "tn": 251
+      },
+      "bom": {
+        "f1": 0.6853,
+        "precision": 0.7538,
+        "recall": 0.6282,
+        "tp": 49,
+        "fp": 16,
+        "fn": 29,
+        "tn": 269
+      },
+      "label_agreement_api_vs_bom": 0.8595,
+      "mean_abs_prob_diff": 0.1056
+    },
+    "Perth": {
+      "days": 366,
+      "positive_rate": 0.249,
+      "api": {
+        "f1": 0.7514,
+        "precision": 0.7556,
+        "recall": 0.7473,
+        "tp": 68,
+        "fp": 22,
+        "fn": 23,
+        "tn": 253
+      },
+      "bom": {
+        "f1": 0.791,
+        "precision": 0.814,
+        "recall": 0.7692,
+        "tp": 70,
+        "fp": 16,
+        "fn": 21,
+        "tn": 259
+      },
+      "label_agreement_api_vs_bom": 0.9344,
+      "mean_abs_prob_diff": 0.0672
+    },
+    "Adelaide": {
+      "days": 366,
+      "positive_rate": 0.246,
+      "api": {
+        "f1": 0.7473,
+        "precision": 0.7391,
+        "recall": 0.7556,
+        "tp": 68,
+        "fp": 24,
+        "fn": 22,
+        "tn": 252
+      },
+      "bom": {
+        "f1": 0.7647,
+        "precision": 0.8125,
+        "recall": 0.7222,
+        "tp": 65,
+        "fp": 15,
+        "fn": 25,
+        "tn": 261
+      },
+      "label_agreement_api_vs_bom": 0.9016,
+      "mean_abs_prob_diff": 0.0932
+    },
+    "Hobart": {
+      "days": 366,
+      "positive_rate": 0.262,
+      "api": {
+        "f1": 0.6245,
+        "precision": 0.5248,
+        "recall": 0.7708,
+        "tp": 74,
+        "fp": 67,
+        "fn": 22,
+        "tn": 203
+      },
+      "bom": {
+        "f1": 0.6514,
+        "precision": 0.582,
+        "recall": 0.7396,
+        "tp": 71,
+        "fp": 51,
+        "fn": 25,
+        "tn": 219
+      },
+      "label_agreement_api_vs_bom": 0.8607,
+      "mean_abs_prob_diff": 0.1156
+    },
+    "Darwin": {
+      "days": 366,
+      "positive_rate": 0.268,
+      "api": {
+        "f1": 0.5525,
+        "precision": 0.6024,
+        "recall": 0.5102,
+        "tp": 50,
+        "fp": 33,
+        "fn": 48,
+        "tn": 235
+      },
+      "bom": {
+        "f1": 0.6832,
+        "precision": 0.6635,
+        "recall": 0.7041,
+        "tp": 69,
+        "fp": 35,
+        "fn": 29,
+        "tn": 233
+      },
+      "label_agreement_api_vs_bom": 0.8333,
+      "mean_abs_prob_diff": 0.1358
+    },
+    "Cairns": {
+      "days": 318,
+      "positive_rate": 0.299,
+      "api": {
+        "f1": 0.6087,
+        "precision": 0.5625,
+        "recall": 0.6632,
+        "tp": 63,
+        "fp": 49,
+        "fn": 32,
+        "tn": 174
+      },
+      "bom": {
+        "f1": 0.6032,
+        "precision": 0.6064,
+        "recall": 0.6,
+        "tp": 57,
+        "fp": 37,
+        "fn": 38,
+        "tn": 186
+      },
+      "label_agreement_api_vs_bom": 0.8365,
+      "mean_abs_prob_diff": 0.1308
+    },
+    "AliceSprings": {
+      "days": 362,
+      "positive_rate": 0.11,
+      "api": {
+        "f1": 0.4839,
+        "precision": 0.6818,
+        "recall": 0.375,
+        "tp": 15,
+        "fp": 7,
+        "fn": 25,
+        "tn": 315
+      },
+      "bom": {
+        "f1": 0.4848,
+        "precision": 0.6154,
+        "recall": 0.4,
+        "tp": 16,
+        "fp": 10,
+        "fn": 24,
+        "tn": 312
+      },
+      "label_agreement_api_vs_bom": 0.9503,
+      "mean_abs_prob_diff": 0.0736
+    },
+    "Canberra": {
+      "days": 366,
+      "positive_rate": 0.227,
+      "api": {
+        "f1": 0.6633,
+        "precision": 0.569,
+        "recall": 0.7952,
+        "tp": 66,
+        "fp": 50,
+        "fn": 17,
+        "tn": 233
+      },
+      "bom": {
+        "f1": 0.5466,
+        "precision": 0.5641,
+        "recall": 0.5301,
+        "tp": 44,
+        "fp": 34,
+        "fn": 39,
+        "tn": 249
+      },
+      "label_agreement_api_vs_bom": 0.8197,
+      "mean_abs_prob_diff": 0.1326
+    },
+    "Albury": {
+      "days": 366,
+      "positive_rate": 0.24,
+      "api": {
+        "f1": 0.6162,
+        "precision": 0.5545,
+        "recall": 0.6932,
+        "tp": 61,
+        "fp": 49,
+        "fn": 27,
+        "tn": 229
+      },
+      "bom": {
+        "f1": 0.6893,
+        "precision": 0.6854,
+        "recall": 0.6932,
+        "tp": 61,
+        "fp": 28,
+        "fn": 27,
+        "tn": 250
+      },
+      "label_agreement_api_vs_bom": 0.8552,
+      "mean_abs_prob_diff": 0.1166
+    },
+    "Townsville": {
+      "days": 363,
+      "positive_rate": 0.154,
+      "api": {
+        "f1": 0.5631,
+        "precision": 0.617,
+        "recall": 0.5179,
+        "tp": 29,
+        "fp": 18,
+        "fn": 27,
+        "tn": 289
+      },
+      "bom": {
+        "f1": 0.6286,
+        "precision": 0.6735,
+        "recall": 0.5893,
+        "tp": 33,
+        "fp": 16,
+        "fn": 23,
+        "tn": 291
+      },
+      "label_agreement_api_vs_bom": 0.9174,
+      "mean_abs_prob_diff": 0.1032
+    }
+  },
+  "features": {
+    "MinTemp": {
+      "mean_abs_diff": 1.428,
+      "corr": 0.963,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "MaxTemp": {
+      "mean_abs_diff": 1.985,
+      "corr": 0.978,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "Rainfall": {
+      "mean_abs_diff": 2.759,
+      "corr": 0.418,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.006
+    },
+    "Evaporation": {
+      "mean_abs_diff": null,
+      "corr": null,
+      "api_missing_rate": 1.0,
+      "bom_missing_rate": 0.309
+    },
+    "Sunshine": {
+      "mean_abs_diff": 2.46,
+      "corr": 0.769,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.432
+    },
+    "WindGustSpeed": {
+      "mean_abs_diff": 6.82,
+      "corr": 0.748,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.013
+    },
+    "WindSpeed9am": {
+      "mean_abs_diff": 5.589,
+      "corr": 0.532,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "WindSpeed3pm": {
+      "mean_abs_diff": 6.719,
+      "corr": 0.462,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "Humidity9am": {
+      "mean_abs_diff": 7.217,
+      "corr": 0.876,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "Humidity3pm": {
+      "mean_abs_diff": 7.811,
+      "corr": 0.868,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "Pressure9am": {
+      "mean_abs_diff": 0.488,
+      "corr": 0.995,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "Pressure3pm": {
+      "mean_abs_diff": 0.516,
+      "corr": 0.995,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "Cloud9am": {
+      "mean_abs_diff": 1.675,
+      "corr": 0.672,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.256
+    },
+    "Cloud3pm": {
+      "mean_abs_diff": 1.79,
+      "corr": 0.613,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.255
+    },
+    "Temp9am": {
+      "mean_abs_diff": 1.287,
+      "corr": 0.975,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "Temp3pm": {
+      "mean_abs_diff": 1.481,
+      "corr": 0.972,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.0
+    },
+    "WindGustDir": {
+      "exact_match_rate": 0.283,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.013
+    },
+    "WindDir9am": {
+      "exact_match_rate": 0.305,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.049
+    },
+    "WindDir3pm": {
+      "exact_match_rate": 0.317,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.004
+    },
+    "RainToday": {
+      "exact_match_rate": 0.788,
+      "api_missing_rate": 0.0,
+      "bom_missing_rate": 0.006
+    }
+  },
+  "note": "period overlaps the academic dev/test split; compare api vs bom, do not read as held-out accuracy"
+}
