@@ -1,5 +1,7 @@
 # australia-rain-app
 
+**Live demo:** https://australia-rain-app.onrender.com (free tier: the first request after 15 idle minutes takes about a minute to wake the server)
+
 Web application for next-day rain prediction in Australia, serving the model
 trained in the academic project
 [australia-rain-prediction](https://github.com/ZahirJacob/australia-rain-prediction)
@@ -130,6 +132,16 @@ are not held-out accuracies — only the *gap* between input sources is the
 point. Full numbers: `artifacts/api_shift_2016_evap_missing.json` and
 `..._et0.json`.
 
+## Deployment
+
+`render.yaml` is a [Render Blueprint](https://render.com/docs/blueprint-spec):
+a free web service built from `requirements.txt`, started with
+`GRADIO_SERVER_NAME=0.0.0.0 GRADIO_SERVER_PORT=$PORT python app.py`, and
+redeployed automatically on every push to `main`. Measured footprint: ~210 MB
+RSS (free instances have 512 MB). Hugging Face Spaces was the original target,
+but Gradio Spaces now require a paid plan (free accounts older than 30 days may
+host two on ZeroGPU hardware — a possible later move).
+
 ## Development
 
 ```
@@ -142,4 +154,4 @@ python scripts/verify_parity.py --source ../australia-rain-prediction
 
 1. ~~TensorFlow-free inference with verified parity~~
 2. ~~Weather-data adapter (Open-Meteo) so users only pick a station and a date~~
-3. Gradio UI, deployed on Hugging Face Spaces
+3. ~~Gradio UI~~ — deployed on Render's free tier, auto-deployed from `main`

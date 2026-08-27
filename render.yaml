@@ -1,0 +1,19 @@
+# Render Blueprint: https://render.com/docs/blueprint-spec
+# Free web service; auto-deploys from the GitHub `main` branch.
+services:
+  - type: web
+    name: australia-rain-app
+    runtime: python
+    plan: free
+    region: singapore          # closest free region to Australia and to Open-Meteo's users there
+    branch: main
+    buildCommand: pip install -r requirements.txt
+    # Render injects $PORT; Gradio reads GRADIO_SERVER_PORT / GRADIO_SERVER_NAME.
+    startCommand: GRADIO_SERVER_NAME=0.0.0.0 GRADIO_SERVER_PORT=$PORT python app.py
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.7
+      - key: PYTHONUNBUFFERED
+        value: "1"
