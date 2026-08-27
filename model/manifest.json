@@ -1,0 +1,57 @@
+{
+  "candidate_id": "nn_config_5",
+  "exported_sha256": {
+    "preprocessor": "4bca0f30cfe1d3bde21c0e4da62044d8c3f3a6c19b220d2407c44df3820069ac",
+    "weights": "da1322dd367a80f5ece53cdca37f2099362b1caa91f0db8da23a467484ef4b65"
+  },
+  "family": "NeuralNetwork",
+  "files": {
+    "preprocessor": "preprocessor.joblib",
+    "weights": "nn_weights.npz"
+  },
+  "layer_shapes": {
+    "dense/bias": [
+      30
+    ],
+    "dense/kernel": [
+      80,
+      30
+    ],
+    "dense_1/bias": [
+      26
+    ],
+    "dense_1/kernel": [
+      30,
+      26
+    ],
+    "dense_2/bias": [
+      24
+    ],
+    "dense_2/kernel": [
+      26,
+      24
+    ],
+    "dense_3/bias": [
+      1
+    ],
+    "dense_3/kernel": [
+      24,
+      1
+    ]
+  },
+  "parameter_count": 3909,
+  "parameters": {
+    "batch_size": 128,
+    "dropout_rate": 0.4,
+    "epochs": 50,
+    "learning_rate": 0.0005
+  },
+  "probability_semantics": "P(RainTomorrow=Yes)",
+  "source_artifact_sha256": {
+    "model": "041251e4eec0cdb5031edaa39a150664424fb5e6cef85156c2cd02a5bd92e077",
+    "preprocessor": "4bca0f30cfe1d3bde21c0e4da62044d8c3f3a6c19b220d2407c44df3820069ac",
+    "selection": "e26db0a23f681a2e1239796816b0802e233c4afb5451749e1fde7e0fa9f20ece"
+  },
+  "source_repository": "https://github.com/ZahirJacob/australia-rain-prediction",
+  "threshold": 0.5957959890365601
+}
