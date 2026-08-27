@@ -82,7 +82,7 @@ def _coerce_date(date: dt.date | dt.datetime | str) -> dt.date:
     if isinstance(date, dt.date):
         return date
     try:
-        return dt.date.fromisoformat(str(date))
+        return dt.date.fromisoformat(str(date).strip())
     except ValueError as exc:
         raise WeatherSourceError(f"date must be ISO YYYY-MM-DD, got {date!r}") from exc
 
@@ -219,16 +219,12 @@ def map_payload(payload: Mapping[str, Any], station: str, date: dt.date,
 
 
 # ------------------------------------------------------------------ public
-def fetch_day(station: str, date: dt.date | dt.datetime | str, *,
-              evaporation: EvaporationMode = "missing", timeout: float = 15.0,
-              today: dt.date | None = None) -> dict[str, Any]:
-    """Return the model's 22-column record for `station` on `date` (station-local).
-
-    Dates older than ~7 days come from the archive; more recent ones (and
-    today) from the forecast endpoint, which mixes observations with
-    short-range forecast for the hours not yet elapsed. If the archive has no
-    data yet, the forecast endpoint is tried as a fallback.
-    """
+def fetch_day_with_source(station: str, date: dt.date | dt.datetime | str, *,
+                          evaporation: EvaporationMode = "missing", timeout: float = 15.0,
+                          today: dt.date | None = None) -> tuple[dict[str, Any], str]:
+    """Like fetch_day, also returning which endpoint served the data:
+    'archive' (ERA5 reanalysis) or 'forecast' (observations + short-range
+    forecast for the hours not yet elapsed)."""
     _check_station(station)
     _check_evaporation(evaporation)
     date = _coerce_date(date)
@@ -239,11 +235,23 @@ def fetch_day(station: str, date: dt.date | dt.datetime | str, *,
     params = _params(station, date, date)
     if age >= ARCHIVE_DELAY_DAYS:
         try:
-            return map_payload(_request(ARCHIVE_URL, params, timeout), station, date, evaporation)
+            return map_payload(_request(ARCHIVE_URL, params, timeout), station, date, evaporation), "archive"
         except NoDataError:
             if age > FORECAST_PAST_LIMIT_DAYS:
                 raise
-    return map_payload(_request(FORECAST_URL, params, timeout), station, date, evaporation)
+    return map_payload(_request(FORECAST_URL, params, timeout), station, date, evaporation), "forecast"
+
+
+def fetch_day(station: str, date: dt.date | dt.datetime | str, *,
+              evaporation: EvaporationMode = "missing", timeout: float = 15.0,
+              today: dt.date | None = None) -> dict[str, Any]:
+    """Return the model's 22-column record for `station` on `date` (station-local).
+
+    Dates older than ~7 days come from the archive; more recent ones (and
+    today) from the forecast endpoint. If the archive has no data yet, the
+    forecast endpoint is tried as a fallback (see fetch_day_with_source).
+    """
+    return fetch_day_with_source(station, date, evaporation=evaporation, timeout=timeout, today=today)[0]
 
 
 def fetch_range(station: str, start: dt.date, end: dt.date, *,
