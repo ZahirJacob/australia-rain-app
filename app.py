@@ -6,6 +6,7 @@ On Hugging Face Spaces this file is the entry point.
 
 from __future__ import annotations
 
+import json
 import math
 from typing import Any
 
@@ -14,8 +15,10 @@ import pandas as pd
 
 from rainapp import load_default_predictor
 from rainapp.predictor import CATEGORICAL_VOCAB, COMPASS_POINTS, INPUT_COLUMNS
-from rainapp.stations import STATION_NAMES
-from rainapp.weather_source import COMPASS, WeatherSourceError, _coerce_date, fetch_day_with_source, station_today
+from rainapp.stations import STATION_NAMES, STATIONS
+from rainapp.weather_source import (ARCHIVE_DELAY_DAYS, ARCHIVE_URL, COMPASS, FORECAST_URL, HOURLY,
+                                    WeatherSourceError, _coerce_date, fetch_day_with_source, map_payload,
+                                    station_today)
 
 PREDICTOR = load_default_predictor()
 THRESHOLD = PREDICTOR.threshold
@@ -33,6 +36,32 @@ SOURCE_TEXT = {
     "archive": "Open-Meteo archive (ERA5 reanalysis)",
     "forecast": "Open-Meteo forecast endpoint (observations + short-range forecast for hours not yet elapsed)",
 }
+
+# The visitor's browser fetches Open-Meteo directly (its own IP and quota;
+# the free tier is rate-limited per IP, and a shared hosting IP exhausts it).
+# The server-side fetch remains as the fallback when the browser call fails.
+BROWSER_FETCH_JS = """
+async (station, date) => {
+  const stations = %(stations)s;
+  const hourly = %(hourly)s;
+  try {
+    const coords = stations[station];
+    if (!coords || !/^\\s*\\d{4}-\\d{2}-\\d{2}\\s*$/.test(date)) return "";
+    const day = new Date(date.trim() + "T00:00:00Z");
+    if (isNaN(day)) return "";
+    const prev = new Date(day.getTime() - 86400000);
+    const iso = (d) => d.toISOString().slice(0, 10);
+    const ageDays = Math.floor((Date.now() - day.getTime()) / 86400000);
+    const base = ageDays >= %(delay)d ? "%(archive)s" : "%(forecast)s";
+    const url = base + "?latitude=" + coords[0] + "&longitude=" + coords[1] + "&timezone=UTC"
+      + "&hourly=" + hourly + "&start_date=" + iso(prev) + "&end_date=" + iso(day);
+    const r = await fetch(url);
+    if (!r.ok) return "";
+    return await r.text();
+  } catch (e) { return ""; }
+}
+""" % {"stations": json.dumps(STATIONS), "hourly": ",".join(HOURLY), "delay": ARCHIVE_DELAY_DAYS,
+       "archive": ARCHIVE_URL, "forecast": FORECAST_URL}
 
 
 def _choices(column: str) -> list[str]:
@@ -106,13 +135,32 @@ def _predict_or_error(record: dict[str, Any]):
         raise gr.Error(str(exc)) from exc
 
 
-def fetch_and_predict(station: str, date: str):
+def _record_from_browser(station: str, date: str, payload_text: str):
+    """Record from the JSON the visitor's browser fetched, or None if unusable."""
+    if not payload_text or not str(payload_text).strip():
+        return None
     try:
-        record, source = fetch_day_with_source(station, date)
-    except WeatherSourceError as exc:
-        raise gr.Error(str(exc)) from exc
+        payload = json.loads(payload_text)
+        record = map_payload(payload, station, _coerce_date(date))
+    except (ValueError, TypeError, WeatherSourceError):
+        return None
+    if _coerce_date(date) > station_today(station):
+        return None
+    return record
+
+
+def fetch_and_predict(station: str, date: str, browser_payload: str = ""):
+    record = _record_from_browser(station, date, browser_payload)
+    if record is not None:
+        source_text = "Open-Meteo, fetched by your browser"
+    else:
+        try:
+            record, source = fetch_day_with_source(station, date)
+        except WeatherSourceError as exc:
+            raise gr.Error(str(exc)) from exc
+        source_text = SOURCE_TEXT[source]
     label, summary = _predict_or_error(record)
-    note = (f"Inputs for **{station}** on **{record['Date']}** from {SOURCE_TEXT[source]}. "
+    note = (f"Inputs for **{station}** on **{record['Date']}** from {source_text}. "
             "Expand *Model inputs* below to see or edit them and re-predict. "
             "Evaporation is left empty on purpose (no equivalent in the API) and is imputed by the model.")
     return label, summary, _record_to_table(record), note
@@ -184,13 +232,15 @@ with gr.Blocks(title="Australia rain tomorrow") as demo:
             label = gr.Label(label="Probability of rain tomorrow")
             summary = gr.Markdown()
         note = gr.Markdown()
+        browser_payload = gr.Textbox(visible=False)
         with gr.Accordion("Model inputs (auto-filled from the weather API — expand to inspect or edit)", open=False):
             table = gr.Dataframe(headers=["Field", "Value", "Unit / meaning"], datatype=["str", "str", "str"],
                                  interactive=True, label="Model inputs (editable)", row_count=(len(EDITABLE), "fixed"))
             redo = gr.Button("Re-predict with edited inputs")
 
         station.change(sync_date, [station, date], date)
-        go.click(fetch_and_predict, [station, date], [label, summary, table, note])
+        go.click(fn=None, inputs=[station, date], outputs=[browser_payload], js=BROWSER_FETCH_JS).then(
+            fetch_and_predict, [station, date, browser_payload], [label, summary, table, note])
         redo.click(repredict, [station, date, table], [label, summary])
 
     with gr.Tab("Manual entry"):

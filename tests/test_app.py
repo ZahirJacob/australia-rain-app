@@ -1,5 +1,8 @@
 """Offline tests for the Gradio app's helper functions (no server, no network)."""
 
+import json
+from pathlib import Path
+
 import pandas as pd
 import pytest
 
@@ -82,3 +85,35 @@ def test_dropdown_choices_come_from_predictor_vocabulary():
 def test_default_date_is_station_local_iso():
     d = app.default_date("Perth")
     assert len(d) == 10 and d[4] == "-" and d[7] == "-"
+
+
+# ---- browser-side fetch ------------------------------------------------------
+
+FIXTURE_TEXT = (Path(__file__).parent / "fixtures" / "open_meteo_utc_sydney_2016-06-10.json").read_text()
+
+
+def test_browser_payload_is_used_without_server_fetch(monkeypatch):
+    def boom(*a, **k):
+        raise AssertionError("server fetch must not be called when the browser payload is valid")
+    monkeypatch.setattr(app, "fetch_day_with_source", boom)
+    label, summary, table, note = app.fetch_and_predict("Sydney", "2016-06-10", FIXTURE_TEXT)
+    assert "fetched by your browser" in note
+    assert label["P(rain tomorrow)"] == pytest.approx(0.2604687511920929, abs=1e-6)
+
+
+def test_invalid_browser_payload_falls_back_to_server(monkeypatch):
+    calls = []
+    def fake(station, date, **k):
+        calls.append(station)
+        rec = app.map_payload(json.loads(FIXTURE_TEXT), station, app._coerce_date(date))
+        return rec, "archive"
+    monkeypatch.setattr(app, "fetch_day_with_source", fake)
+    for bad in ("", "not json", '{"hourly": {}}', '{"error": true, "reason": "limit"}'):
+        _, _, _, note = app.fetch_and_predict("Sydney", "2016-06-10", bad)
+        assert "archive" in note
+    assert len(calls) == 4
+
+
+def test_browser_js_embeds_config():
+    assert '"Sydney": [' in app.BROWSER_FETCH_JS and "precipitation" in app.BROWSER_FETCH_JS
+    assert app.ARCHIVE_URL in app.BROWSER_FETCH_JS and app.FORECAST_URL in app.BROWSER_FETCH_JS
