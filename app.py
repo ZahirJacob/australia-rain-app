@@ -6,7 +6,6 @@ On Hugging Face Spaces this file is the entry point.
 
 from __future__ import annotations
 
-import datetime as dt
 import math
 from typing import Any
 
@@ -14,9 +13,9 @@ import gradio as gr
 import pandas as pd
 
 from rainapp import load_default_predictor
-from rainapp.predictor import INPUT_COLUMNS, NUMERIC_COLUMNS
+from rainapp.predictor import CATEGORICAL_VOCAB, COMPASS_POINTS, INPUT_COLUMNS
 from rainapp.stations import STATION_NAMES
-from rainapp.weather_source import COMPASS, WeatherSourceError, fetch_day, station_today
+from rainapp.weather_source import COMPASS, WeatherSourceError, _coerce_date, fetch_day_with_source, station_today
 
 PREDICTOR = load_default_predictor()
 THRESHOLD = PREDICTOR.threshold
@@ -30,7 +29,17 @@ FIELD_HELP = {
     "Cloud3pm": "oktas 0-8", "Temp9am": "°C", "Temp3pm": "°C", "RainToday": "Yes/No (> 1 mm)",
 }
 EDITABLE = [c for c in INPUT_COLUMNS if c not in ("Date", "Location")]
-DIRECTION_FIELDS = ("WindGustDir", "WindDir9am", "WindDir3pm")
+SOURCE_TEXT = {
+    "archive": "Open-Meteo archive (ERA5 reanalysis)",
+    "forecast": "Open-Meteo forecast endpoint (observations + short-range forecast for hours not yet elapsed)",
+}
+
+
+def _choices(column: str) -> list[str]:
+    """Dropdown choices for a categorical column, derived from the predictor's vocabulary."""
+    vocab = CATEGORICAL_VOCAB[column]
+    ordered = list(COMPASS) if vocab == COMPASS_POINTS else sorted(vocab, reverse=True)  # Yes before No
+    return [""] + ordered
 
 
 # ------------------------------------------------------------------ helpers
@@ -40,25 +49,40 @@ def _fmt(v: Any) -> str:
     return str(v)
 
 
+def _blank_to_none(v: Any) -> Any:
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return None
+    text = str(v).strip()
+    return text or None
+
+
+def _valid_date(date: str) -> str:
+    """ISO date string or gr.Error; shared by every prediction path."""
+    try:
+        return _coerce_date(date).isoformat()
+    except WeatherSourceError as exc:
+        raise gr.Error(str(exc)) from exc
+
+
 def _record_to_table(record: dict[str, Any]) -> pd.DataFrame:
     return pd.DataFrame({"Field": EDITABLE, "Value": [_fmt(record[c]) for c in EDITABLE],
                          "Unit / meaning": [FIELD_HELP[c] for c in EDITABLE]})
 
 
 def _table_to_record(table: pd.DataFrame, station: str, date: str) -> dict[str, Any]:
+    if table is None or len(table) != len(EDITABLE) or set(table["Field"]) != set(EDITABLE):
+        raise gr.Error("No inputs to re-predict from yet — press *Fetch weather & predict* first.")
     values = dict(zip(table["Field"], table["Value"]))
     record: dict[str, Any] = {"Date": date, "Location": station}
     for column in EDITABLE:
-        v = values.get(column, "")
-        v = None if v is None or str(v).strip() == "" else str(v).strip()
-        record[column] = v
+        record[column] = _blank_to_none(values.get(column))
     return record
 
 
 def _result(record: dict[str, Any]) -> tuple[dict[str, float], str]:
     """Label value + markdown verdict.
 
-    The verdict must come from the model's threshold (59.6%), not from which
+    The verdict must come from the model's threshold, not from which
     probability is larger, so the Label shows a single bar for P(rain) and the
     Yes/No decision is stated in the markdown.
     """
@@ -68,49 +92,50 @@ def _result(record: dict[str, Any]) -> tuple[dict[str, float], str]:
         verdict = "🌧️ Rain expected tomorrow"
     else:
         verdict = "☀️ No rain expected tomorrow"
+    why = " (chosen to maximise F1 on out-of-fold data, which is why it is not 50%)" if abs(THRESHOLD - 0.5) > 1e-9 else ""
     summary = (f"## {verdict}\n"
-               f"P(rain tomorrow) = **{p:.1%}** vs decision threshold **{THRESHOLD:.1%}** "
-               f"(the threshold was chosen to maximise F1 on out-of-fold data, which is why it is above 50%).")
+               f"P(rain tomorrow) = **{p:.1%}** vs decision threshold **{THRESHOLD:.1%}**{why}.")
     return {"P(rain tomorrow)": p}, summary
 
 
 # ------------------------------------------------------------------ actions
+def _predict_or_error(record: dict[str, Any]):
+    try:
+        return _result(record)
+    except (ValueError, RuntimeError) as exc:
+        raise gr.Error(str(exc)) from exc
+
+
 def fetch_and_predict(station: str, date: str):
     try:
-        record = fetch_day(station, date)
+        record, source = fetch_day_with_source(station, date)
     except WeatherSourceError as exc:
         raise gr.Error(str(exc)) from exc
-    label, summary = _result(record)
-    today = station_today(station)
-    age = (today - dt.date.fromisoformat(record["Date"])).days
-    source = ("Open-Meteo archive (ERA5 reanalysis)" if age >= 7
-              else "Open-Meteo forecast endpoint (observations + short-range forecast for hours not yet elapsed)")
-    note = (f"Inputs for **{station}** on **{record['Date']}** from {source}. "
+    label, summary = _predict_or_error(record)
+    note = (f"Inputs for **{station}** on **{record['Date']}** from {SOURCE_TEXT[source]}. "
             "Expand *Model inputs* below to see or edit them and re-predict. "
             "Evaporation is left empty on purpose (no equivalent in the API) and is imputed by the model.")
     return label, summary, _record_to_table(record), note
 
 
 def repredict(station: str, date: str, table: pd.DataFrame):
-    try:
-        label, summary = _result(_table_to_record(table, station, date))
-    except ValueError as exc:
-        raise gr.Error(str(exc)) from exc
-    return label, summary
+    return _predict_or_error(_table_to_record(table, station, _valid_date(date)))
 
 
 def manual_predict(station, date, *values):
-    record = {"Date": date, "Location": station}
+    record = {"Date": _valid_date(date), "Location": station}
     for column, v in zip(EDITABLE, values):
-        record[column] = None if v is None or (isinstance(v, str) and not v.strip()) else v
-    try:
-        return _result(record)
-    except ValueError as exc:
-        raise gr.Error(str(exc)) from exc
+        record[column] = _blank_to_none(v)
+    return _predict_or_error(record)
 
 
 def default_date(station: str) -> str:
     return station_today(station).isoformat()
+
+
+def sync_date(station: str, current: str) -> str:
+    """When the station changes, only fill the date if the user left it blank."""
+    return current if (current or "").strip() else default_date(station)
 
 
 # ------------------------------------------------------------------ layout
@@ -164,7 +189,7 @@ with gr.Blocks(title="Australia rain tomorrow") as demo:
                                  interactive=True, label="Model inputs (editable)", row_count=(len(EDITABLE), "fixed"))
             redo = gr.Button("Re-predict with edited inputs")
 
-        station.change(default_date, station, date)
+        station.change(sync_date, [station, date], date)
         go.click(fetch_and_predict, [station, date], [label, summary, table, note])
         redo.click(repredict, [station, date, table], [label, summary])
 
@@ -178,12 +203,11 @@ with gr.Blocks(title="Australia rain tomorrow") as demo:
             for chunk in (EDITABLE[:7], EDITABLE[7:14], EDITABLE[14:]):
                 with gr.Column():
                     for column in chunk:
-                        if column in DIRECTION_FIELDS:
-                            inputs.append(gr.Dropdown(choices=[""] + list(COMPASS), value="", label=f"{column} ({FIELD_HELP[column]})"))
-                        elif column == "RainToday":
-                            inputs.append(gr.Dropdown(choices=["", "Yes", "No"], value="", label=f"{column} ({FIELD_HELP[column]})"))
+                        if column in CATEGORICAL_VOCAB:
+                            inputs.append(gr.Dropdown(choices=_choices(column), value="", label=f"{column} ({FIELD_HELP[column]})"))
                         else:
                             inputs.append(gr.Textbox(value="", label=f"{column} ({FIELD_HELP[column]})"))
+        m_station.change(sync_date, [m_station, m_date], m_date)
         m_go = gr.Button("Predict", variant="primary")
         with gr.Row():
             m_label = gr.Label(label="Probability of rain tomorrow")

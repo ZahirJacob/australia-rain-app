@@ -44,13 +44,39 @@ def test_repredict_from_edited_table_matches_predict_one():
     assert label["P(rain tomorrow)"] == pytest.approx(expected, abs=1e-9)
 
 
-def test_manual_predict_with_blanks_and_invalid_date_error():
+def test_manual_predict_with_blanks():
     values = ["" for _ in app.EDITABLE]
     values[app.EDITABLE.index("Humidity3pm")] = "95"
     label, summary = app.manual_predict("Hobart", "2015-07-01", *values)
     assert 0 <= label["P(rain tomorrow)"] <= 1
-    values[app.EDITABLE.index("MinTemp")] = "[1,2]"  # a string, not a list: coerced to missing, no crash
-    app.manual_predict("Hobart", "2015-07-01", *values)
+    values[app.EDITABLE.index("MinTemp")] = "13.6C"  # unparseable text is treated as missing
+    app.manual_predict("Hobart", " 2015-07-01 ", *values)  # surrounding whitespace tolerated
+
+
+def test_invalid_or_blank_date_is_an_error_everywhere():
+    import gradio as gr
+    values = ["" for _ in app.EDITABLE]
+    for bad in ("10/06/2015", "", "yesterday"):
+        with pytest.raises(gr.Error):
+            app.manual_predict("Hobart", bad, *values)
+        with pytest.raises(gr.Error):
+            app.repredict("Hobart", bad, app._record_to_table({c: None for c in INPUT_COLUMNS} | SYDNEY))
+
+
+def test_repredict_on_empty_table_is_an_error():
+    import gradio as gr
+    with pytest.raises(gr.Error, match="Fetch weather"):
+        app.repredict("Sydney", "2015-06-10", pd.DataFrame(columns=["Field", "Value", "Unit / meaning"]))
+
+
+def test_sync_date_keeps_user_typed_date():
+    assert app.sync_date("Perth", "2015-06-10") == "2015-06-10"
+    assert app.sync_date("Perth", "  ") == app.default_date("Perth")
+
+
+def test_dropdown_choices_come_from_predictor_vocabulary():
+    assert app._choices("RainToday") == ["", "Yes", "No"]
+    assert app._choices("WindDir9am")[1:] == list(app.COMPASS)
 
 
 def test_default_date_is_station_local_iso():

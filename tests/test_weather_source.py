@@ -98,6 +98,7 @@ def test_input_validation_raises_only_weather_source_error():
     with pytest.raises(ws.WeatherSourceError):
         ws.fetch_day("Sydney", "10/06/2016", today=TODAY)          # non-ISO
     assert ws._coerce_date(dt.datetime(2016, 6, 10, 14, 30)) == DAY  # datetime accepted
+    assert ws._coerce_date(" 2016-06-10 ") == DAY                    # whitespace tolerated
 
 
 def test_stations_table_matches_frozen_bundle():
