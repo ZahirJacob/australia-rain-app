@@ -90,18 +90,25 @@ def app_url():
 
 
 @pytest.fixture(scope="module")
-def page(app_url):
+def browser(app_url):
     if not _open_meteo_reachable():
         pytest.skip("Open-Meteo not reachable from this machine")
-    with playwright.sync_playwright() as p:
+    with playwright.sync_playwright() as p:  # one Playwright per module: nesting is not allowed
         try:
             browser = p.chromium.launch(headless=True)
         except Exception as exc:  # browser binaries not installed
             pytest.skip(f"Chromium not available: {str(exc)[:80]}")
-        page = browser.new_page()
-        page.set_default_timeout(60_000)
-        yield page
+        yield browser
         browser.close()
+
+
+@pytest.fixture
+def page(browser):
+    context = browser.new_context()
+    page = context.new_page()
+    page.set_default_timeout(60_000)
+    yield page
+    context.close()
 
 
 def test_browser_fetches_open_meteo_and_result_renders(page, app_url):
@@ -127,16 +134,11 @@ def test_browser_error_path_shows_message(page, app_url):
     page.wait_for_function("document.body.innerText.includes('future')", timeout=60_000)
 
 
-def test_spanish_browser_gets_spanish_ui_and_lang_override(app_url):
-    if not _open_meteo_reachable():
-        pytest.skip("Open-Meteo not reachable from this machine")
-    with playwright.sync_playwright() as p:
-        try:
-            browser = p.chromium.launch(headless=True)
-        except Exception as exc:
-            pytest.skip(f"Chromium not available: {str(exc)[:80]}")
-        page = browser.new_context(locale="es-AR").new_page()
-        page.set_default_timeout(60_000)
+def test_spanish_browser_gets_spanish_ui_and_lang_override(browser, app_url):
+    context = browser.new_context(locale="es-AR")
+    page = context.new_page()
+    page.set_default_timeout(60_000)
+    try:
         date_box = open_app(page, app_url, "Buscar el clima y predecir", "Fecha")
         date_box.fill(PAST_DATE)
         page.get_by_role("button", name="Buscar el clima y predecir").click()
@@ -145,4 +147,5 @@ def test_spanish_browser_gets_spanish_ui_and_lang_override(app_url):
         assert "P(lluvia mañana)" in text and f"Entradas para Sydney el {PAST_DATE}" in text
         # explicit override beats the browser language
         open_app(page, app_url + "?lang=en", "Fetch weather & predict", "Date")
-        browser.close()
+    finally:
+        context.close()
