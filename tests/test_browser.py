@@ -110,3 +110,26 @@ def test_browser_error_path_shows_message(page, app_url):
     page.get_by_role("textbox", name=re.compile("Date")).first.fill("2031-01-01")
     page.get_by_role("button", name="Fetch weather & predict").click()
     page.wait_for_function("document.body.innerText.includes('future')", timeout=60_000)
+
+
+def test_spanish_browser_gets_spanish_ui_and_lang_override(app_url):
+    if not _open_meteo_reachable():
+        pytest.skip("Open-Meteo not reachable from this machine")
+    with playwright.sync_playwright() as p:
+        try:
+            browser = p.chromium.launch(headless=True)
+        except Exception as exc:
+            pytest.skip(f"Chromium not available: {str(exc)[:80]}")
+        page = browser.new_context(locale="es-AR").new_page()
+        page.set_default_timeout(60_000)
+        page.goto(app_url, wait_until="domcontentloaded")
+        page.wait_for_function("document.body.innerText.includes('Buscar el clima y predecir')", timeout=30_000)
+        page.get_by_role("textbox", name=re.compile("Fecha")).first.fill(PAST_DATE)
+        page.get_by_role("button", name="Buscar el clima y predecir").click()
+        page.wait_for_function("document.body.innerText.includes('descargado por tu navegador')", timeout=60_000)
+        text = page.inner_text("body")
+        assert "P(lluvia mañana)" in text and f"Entradas para Sydney el {PAST_DATE}" in text
+        # explicit override beats the browser language
+        page.goto(app_url + "?lang=en", wait_until="domcontentloaded")
+        page.wait_for_function("document.body.innerText.includes('Fetch weather & predict')", timeout=30_000)
+        browser.close()
