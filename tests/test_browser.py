@@ -23,6 +23,12 @@ from pathlib import Path
 
 import pytest
 
+from rainapp.i18n import TEXTS
+
+ES_FETCH = TEXTS["es"]["fetch"]
+ES_BROWSER_NOTE = TEXTS["es"]["src_browser"].split("{src}")[1].strip(" —")   # e.g. "obtenido por tu navegador"
+ES_BAR = TEXTS["es"]["bar"]
+
 playwright = pytest.importorskip("playwright.sync_api")
 requests = pytest.importorskip("requests")
 
@@ -139,12 +145,12 @@ def test_spanish_browser_gets_spanish_ui_and_lang_override(browser, app_url):
     page = context.new_page()
     page.set_default_timeout(60_000)
     try:
-        date_box = open_app(page, app_url, "Buscar el clima y predecir", "Fecha")
+        date_box = open_app(page, app_url, ES_FETCH, "Fecha")
         date_box.fill(PAST_DATE)
-        page.get_by_role("button", name="Buscar el clima y predecir").click()
-        page.wait_for_function("document.body.innerText.includes('descargado por tu navegador')", timeout=60_000)
+        page.get_by_role("button", name=ES_FETCH).click()
+        page.wait_for_function(f"document.body.innerText.includes({ES_BROWSER_NOTE!r})", timeout=60_000)
         text = page.inner_text("body")
-        assert "P(lluvia mañana)" in text and f"Entradas para Sydney el {PAST_DATE}" in text
+        assert ES_BAR in text and f"Entradas para Sydney el {PAST_DATE}" in text
         # explicit override beats the browser language
         open_app(page, app_url + "?lang=en", "Fetch weather & predict", "Date")
     finally:

@@ -75,22 +75,31 @@ FIELD_HELP = {
 TEXTS = {
     "en": {
         "title": "# Will it rain tomorrow?\nPick an Australian weather station and a date; today's observations are fetched automatically.",
-        "tab_station": "Station & date", "tab_manual": "Manual entry", "tab_about": "About",
-        "station": "Station", "date_local": "Date (YYYY-MM-DD, station local)", "date": "Date (YYYY-MM-DD)",
-        "fetch": "Fetch weather & predict", "prob_label": "Probability of rain tomorrow",
+        "tab_station": "Station & date",
+        "tab_manual": "Manual entry",
+        "tab_about": "About",
+        "station": "Station",
+        "date_local": "Date (YYYY-MM-DD, station local)",
+        "date": "Date (YYYY-MM-DD)",
+        "fetch": "Fetch weather & predict",
+        "prob_label": "Probability of rain tomorrow",
         "accordion": "Model inputs (auto-filled from the weather API — expand to inspect or edit)",
-        "table_label": "Model inputs (editable)", "col_field": "Field", "col_value": "Value", "col_unit": "Unit / meaning",
+        "table_label": "Model inputs (editable)",
+        "col_field": "Field",
+        "col_value": "Value",
+        "col_unit": "Unit / meaning",
         "repredict": "Re-predict with edited inputs",
         "manual_intro": "Enter observations yourself (BoM conventions). Leave anything unknown blank — it will be imputed.",
         "predict": "Predict",
-        "verdict_rain": "🌧️ Rain expected tomorrow", "verdict_dry": "☀️ No rain expected tomorrow",
+        "verdict_rain": "🌧️ Rain expected tomorrow",
+        "verdict_dry": "☀️ No rain expected tomorrow",
         "prob_line": "P(rain tomorrow) = **{p}** vs decision threshold **{thr}**{why}.",
-        "why": " (chosen to maximise F1 on out-of-fold data, which is why it is not 50%)",
+        "why": " (chosen to maximise F1 on out-of-fold validation; this is why it is not 50%)",
         "bar": "P(rain tomorrow)",
         "src_archive": "Open-Meteo archive (ERA5 reanalysis)",
         "src_forecast": "Open-Meteo forecast endpoint (observations + short-range forecast for hours not yet elapsed)",
         "src_browser": "{src} — fetched by your browser",
-        "note": "Inputs for **{station}** on **{date}** from {src}. Expand *Model inputs* below to see or edit them and re-predict. Evaporation is left empty on purpose (no equivalent in the API) and is imputed by the model.",
+        "note": "Inputs for **{station}** on **{date}** from {src}. Expand *Model inputs* below to inspect or edit them and re-predict. Evaporation is intentionally left empty (no equivalent in the API) and is imputed by the model.",
         "err_no_table": "No inputs to re-predict from yet — press *Fetch weather & predict* first.",
         "err_date": "Date must be YYYY-MM-DD.",
         "err_future": "That date is in the future; the model needs the day's observations.",
@@ -98,30 +107,40 @@ TEXTS = {
         "err_weather": "Weather service unavailable: {msg}",
         "lang_note": "🌐 Language follows your browser; force it with `?lang=en` or `?lang=es` in the address.",
     },
+
     "es": {
-        "title": "# ¿Llueve mañana?\nElegí una estación meteorológica de Australia y una fecha; las observaciones del día se descargan solas.",
-        "tab_station": "Estación y fecha", "tab_manual": "Carga manual", "tab_about": "Acerca de",
-        "station": "Estación", "date_local": "Fecha (AAAA-MM-DD, hora local de la estación)", "date": "Fecha (AAAA-MM-DD)",
-        "fetch": "Buscar el clima y predecir", "prob_label": "Probabilidad de lluvia mañana",
-        "accordion": "Entradas del modelo (completadas desde la API del clima — desplegá para ver o editar)",
-        "table_label": "Entradas del modelo (editables)", "col_field": "Campo", "col_value": "Valor", "col_unit": "Unidad / significado",
+        "title": "# ¿Lloverá mañana?\nElegí una estación meteorológica de Australia y una fecha; las observaciones del día se obtienen automáticamente.",
+        "tab_station": "Estación y fecha",
+        "tab_manual": "Carga manual",
+        "tab_about": "Acerca de",
+        "station": "Estación",
+        "date_local": "Fecha (AAAA-MM-DD, hora local de la estación)",
+        "date": "Fecha (AAAA-MM-DD)",
+        "fetch": "Obtener clima y predecir",
+        "prob_label": "Probabilidad de lluvia mañana",
+        "accordion": "Entradas del modelo (completadas automáticamente desde la API meteorológica; desplegá para ver o editar)",
+        "table_label": "Entradas del modelo (editables)",
+        "col_field": "Campo",
+        "col_value": "Valor",
+        "col_unit": "Unidad / significado",
         "repredict": "Volver a predecir con las entradas editadas",
-        "manual_intro": "Ingresá las observaciones vos mismo (convenciones del BoM). Dejá en blanco lo que no sepas: se imputa.",
+        "manual_intro": "Ingresá las observaciones manualmente (convenciones del BoM). Dejá en blanco lo que no sepas; el modelo lo completará mediante imputación.",
         "predict": "Predecir",
-        "verdict_rain": "🌧️ Se espera lluvia mañana", "verdict_dry": "☀️ No se espera lluvia mañana",
+        "verdict_rain": "🌧️ Se espera lluvia mañana",
+        "verdict_dry": "☀️ No se espera lluvia mañana",
         "prob_line": "P(lluvia mañana) = **{p}** frente al umbral de decisión **{thr}**{why}.",
-        "why": " (elegido para maximizar el F1 fuera de muestra; por eso no es 50 %)",
+        "why": " (elegido para maximizar el F1 en validación out-of-fold; por eso no es 50 %)",
         "bar": "P(lluvia mañana)",
-        "src_archive": "archivo de Open-Meteo (reanálisis ERA5)",
-        "src_forecast": "endpoint de pronóstico de Open-Meteo (observaciones + pronóstico a corto plazo para las horas que aún no pasaron)",
-        "src_browser": "{src} — descargado por tu navegador",
-        "note": "Entradas para **{station}** el **{date}** desde {src}. Desplegá *Entradas del modelo* abajo para verlas o editarlas y volver a predecir. La evaporación se deja vacía a propósito (no existe en la API) y el modelo la imputa.",
-        "err_no_table": "Todavía no hay entradas para volver a predecir: primero presioná *Buscar el clima y predecir*.",
+        "src_archive": "histórico de Open-Meteo (reanálisis ERA5)",
+        "src_forecast": "pronóstico de Open-Meteo (observaciones + pronóstico a corto plazo para las horas que todavía no transcurrieron)",
+        "src_browser": "{src} — obtenido por tu navegador",
+        "note": "Entradas para **{station}** el **{date}** desde {src}. Desplegá *Entradas del modelo* abajo para verlas o editarlas y volver a predecir. La evaporación se deja vacía a propósito (no existe un equivalente en la API) y el modelo la completa mediante imputación.",
+        "err_no_table": "Todavía no hay entradas para volver a predecir; primero presioná *Obtener clima y predecir*.",
         "err_date": "La fecha debe tener el formato AAAA-MM-DD.",
         "err_future": "Esa fecha está en el futuro; el modelo necesita las observaciones del día.",
-        "err_nodata": "Todavía no hay observaciones para {station} el {date} (el archivo se actualiza con unos días de retraso).",
+        "err_nodata": "Todavía no hay observaciones disponibles para {station} el {date} (el histórico se actualiza con algunos días de retraso).",
         "err_weather": "Servicio meteorológico no disponible: {msg}",
-        "lang_note": "🌐 El idioma sigue al navegador; forzalo con `?lang=es` o `?lang=en` en la dirección.",
+        "lang_note": "🌐 El idioma sigue la configuración de tu navegador; podés forzarlo agregando `?lang=es` o `?lang=en` a la dirección.",
     },
 }
 
@@ -145,27 +164,28 @@ personal follow-up work by Zahir Jacob — [source](https://github.com/ZahirJaco
 
 Roughly: when it says rain, it is right about 6 times in 10; it catches about
 2 in 3 rainy days. Feeding it from the free weather API (what this app does)
-costs about 0.04 F1, mostly as extra rain warnings.
+reduces F1 by about 0.04 points, mainly due to extra rain warnings.
 
 ## Honest caveats
 * This is **not** a better forecast than the weather service — Open-Meteo itself
-  gives you a rain forecast. It demonstrates a trained classifier on real inputs.
+  provides a rain forecast. This is a demonstration of a trained classifier on real inputs.
 * The model was trained on 2007–2017 Bureau of Meteorology station readings.
   Open-Meteo values are gridded model/reanalysis estimates; rainfall and wind
-  direction transfer worst, pressure and temperature best.
-* For "today", some hours have not happened yet and come from Open-Meteo's
+  direction transfer worst, while pressure and temperature transfer best.
+* For "today", some hours have not happened yet and are filled from Open-Meteo's
   short-range forecast.
-* Predictions are exactly those of the frozen academic model (verified on all
-  28,431 test rows); nothing was retrained.
+* Predictions are exactly those of the frozen academic model
+  (verified on all 28,431 test rows); nothing was retrained.
 """,
+
     "es": """
 ## Qué es esto
 Una demo del clasificador desarrollado en el proyecto académico
 [australia-rain-prediction](https://github.com/ZahirJacob/australia-rain-prediction)
 (Dimenna, Jacob, Taborda): una red neuronal pequeña (`nn_config_5`, 3.909 parámetros)
-que predice si caerán **más de 1 mm de lluvia** en las 24 h desde las 9 am de mañana
+que predice si caerá **más de 1 mm de lluvia** durante las 24 h a partir de las 9 am de mañana
 en una de 49 estaciones meteorológicas de Australia, a partir de las observaciones de hoy.
-Esta aplicación, la inferencia sin TensorFlow y la integración con la API del clima
+Esta aplicación, la inferencia sin TensorFlow y la integración con la API meteorológica
 son trabajo personal posterior de Zahir Jacob — [código](https://github.com/ZahirJacob/australia-rain-app).
 
 ## ¿Qué tan bueno es?
@@ -175,20 +195,23 @@ son trabajo personal posterior de Zahir Jacob — [código](https://github.com/Z
 | Validación temporal con ventana creciente (entrenar con el pasado, predecir el futuro) | 0,640 | 0,612 | 0,670 | 0,871 |
 | Entradas desde Open-Meteo en lugar de instrumentos del BoM (12 estaciones × 2016) | 0,624 | 0,599 | 0,651 | — |
 
-En criollo: cuando dice que llueve, acierta unas 6 de cada 10 veces; detecta
-unos 2 de cada 3 días de lluvia. Alimentarlo desde la API gratuita (lo que hace
-esta app) cuesta unos 0,04 de F1, sobre todo como avisos de lluvia de más.
+En criollo: cuando dice que va a llover, acierta unas 6 de cada 10 veces; detecta
+unos 2 de cada 3 días de lluvia. Usar como entrada los datos de la API gratuita
+(como hace esta app) reduce el F1 en unos 0,04 puntos, principalmente por avisos
+de lluvia adicionales.
 
 ## Advertencias honestas
-* Esto **no** es un pronóstico mejor que el del servicio meteorológico: la propia
-  Open-Meteo te da un pronóstico de lluvia. Es una demostración de un clasificador
-  entrenado sobre entradas reales.
-* El modelo se entrenó con lecturas de estaciones del Bureau of Meteorology de 2007 a 2017.
+* Esto **no** es un pronóstico mejor que el del servicio meteorológico: Open-Meteo
+  ya ofrece su propio pronóstico de lluvia. Es una demostración de un clasificador
+  entrenado utilizando datos reales.
+* El modelo se entrenó con mediciones de estaciones del Bureau of Meteorology de 2007 a 2017.
   Los valores de Open-Meteo son estimaciones de modelos/reanálisis en grilla; la lluvia y la
-  dirección del viento son lo que peor se traslada; la presión y la temperatura, lo mejor.
-* Para "hoy", algunas horas todavía no ocurrieron y salen del pronóstico a corto plazo de Open-Meteo.
-* Las predicciones son exactamente las del modelo académico congelado (verificado en las
-  28.431 filas de test); no se reentrenó nada.
+  dirección del viento son las variables que peor se transfieren, mientras que la presión y
+  la temperatura son las que mejor lo hacen.
+* Para "hoy", algunas horas todavía no transcurrieron y se completan con el pronóstico
+  a corto plazo de Open-Meteo.
+* Las predicciones son exactamente las del modelo académico congelado
+  (verificado en las 28.431 filas del conjunto de prueba); no se reentrenó el modelo.
 """,
 }
 

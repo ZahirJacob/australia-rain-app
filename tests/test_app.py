@@ -180,7 +180,7 @@ def test_pick_language():
 def test_spanish_outputs_end_to_end():
     label, summary, table, note = app.fetch_and_predict("Sydney", "2016-06-10", WRAPPED, "es")
     assert list(label) == ["P(lluvia mañana)"] and "mañana" in summary and "umbral" in summary
-    assert "descargado por tu navegador" in note and "Entradas para **Sydney**" in note
+    assert i18n.TEXTS["es"]["src_browser"].split("{src}")[1].strip(" —") in note and "Entradas para **Sydney**" in note
     assert list(table.columns) == ["Campo", "Valor", "Unidad / significado"]
     values = ["" for _ in app.EDITABLE]
     _, es_summary = app.manual_predict("Hobart", "2015-07-01", *values, "es")
