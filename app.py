@@ -257,7 +257,7 @@ with gr.Blocks(title="Australia rain tomorrow") as demo:
     with gr.Tab(E["tab_station"]) as tab_station:
         with gr.Row():
             station = gr.Dropdown(choices=list(STATION_NAMES), value="Sydney", label=E["station"])
-            date = gr.Textbox(value=lambda: default_date("Sydney"), label=E["date_local"])
+            date = gr.Textbox(value="", label=E["date_local"])  # filled by the page-load hook
             go = gr.Button(E["fetch"], variant="primary")
         with gr.Row():
             label = gr.Label(label=E["prob_label"])
@@ -277,7 +277,7 @@ with gr.Blocks(title="Australia rain tomorrow") as demo:
         manual_md = gr.Markdown(E["manual_intro"])
         with gr.Row():
             m_station = gr.Dropdown(choices=list(STATION_NAMES), value="Sydney", label=E["station"])
-            m_date = gr.Textbox(value=lambda: default_date("Sydney"), label=E["date"])
+            m_date = gr.Textbox(value="", label=E["date"])  # filled by the page-load hook
         inputs = []
         with gr.Row():
             for chunk in (EDITABLE[:7], EDITABLE[7:14], EDITABLE[14:]):
@@ -297,26 +297,32 @@ with gr.Blocks(title="Australia rain tomorrow") as demo:
     with gr.Tab(E["tab_about"]) as tab_about:
         about_md = gr.Markdown(ABOUT["en"])
 
-    # ---- language: chosen once per page load, applied to every visible text
+    # ---- page-load hook: language chosen once, every visible text relabelled,
+    # and the default date set. Everything arrives in ONE update, so nothing
+    # a user types afterwards can be overwritten by a late default value
+    # (a `value=lambda` default is fetched separately and lands late).
     RELABEL = [  # (component, text key, attribute)
         (title_md, "title", "value"), (lang_md, "lang_note", "value"),
         (tab_station, "tab_station", "label"), (tab_manual, "tab_manual", "label"), (tab_about, "tab_about", "label"),
-        (station, "station", "label"), (date, "date_local", "label"), (go, "fetch", "value"),
+        (station, "station", "label"), (go, "fetch", "value"),
         (label, "prob_label", "label"), (accordion, "accordion", "label"), (table, "table_label", "label"),
         (redo, "repredict", "value"), (manual_md, "manual_intro", "value"),
-        (m_station, "station", "label"), (m_date, "date", "label"), (m_go, "predict", "value"),
+        (m_station, "station", "label"), (m_go, "predict", "value"),
         (m_label, "prob_label", "label"),
     ]
 
     def apply_language(request: gr.Request):
         lang = pick_language(request.headers.get("accept-language"), request.query_params.get("lang"))
+        today = default_date("Sydney")
         updates = [gr.update(**{attr: t(lang, key)}) for _, key, attr in RELABEL]
+        updates.append(gr.update(label=t(lang, "date_local"), value=today))
+        updates.append(gr.update(label=t(lang, "date"), value=today))
         updates.append(gr.update(headers=_table_headers(lang)))
         updates.append(gr.update(value=ABOUT[lang]))
         updates.extend(gr.update(label=_field_label(column, lang)) for column in EDITABLE)
         return [lang, *updates]
 
-    demo.load(apply_language, None, [lang_state, *[c for c, _, _ in RELABEL], table, about_md, *inputs])
+    demo.load(apply_language, None, [lang_state, *[c for c, _, _ in RELABEL], date, m_date, table, about_md, *inputs])
 
 if __name__ == "__main__":
     demo.launch()
