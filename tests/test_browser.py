@@ -23,11 +23,33 @@ from pathlib import Path
 
 import pytest
 
+from rainapp.i18n import TEXTS
+
+ES_FETCH = TEXTS["es"]["fetch"]
+ES_BROWSER_NOTE = TEXTS["es"]["src_browser"].split("{src}")[1].strip(" —")   # e.g. "obtenido por tu navegador"
+ES_BAR = TEXTS["es"]["bar"]
+
 playwright = pytest.importorskip("playwright.sync_api")
 requests = pytest.importorskip("requests")
 
 ROOT = Path(__file__).resolve().parent.parent
 PAST_DATE = "2016-06-10"  # archive data: stable, never "not yet available"
+
+
+def open_app(page, url: str, button_text: str, date_label: str):
+    """Load the page and wait until it is really ready.
+
+    `wait_until="networkidle"` never fires: the page-load language hook keeps
+    Gradio's event stream open. Waiting for the (relabelled) button text proves
+    the load hook ran, and waiting for the date box to be populated avoids a
+    race where the page's default value overwrites a value typed too early.
+    """
+    page.goto(url, wait_until="domcontentloaded")
+    page.wait_for_function(f"document.body.innerText.includes({button_text!r})", timeout=30_000)
+    date_box = page.get_by_role("textbox", name=re.compile(date_label)).first
+    page.wait_for_function("(sel) => { const e = document.querySelector(sel); return !!e && e.value.length === 10; }",
+                           arg="input[type=text], textarea", timeout=30_000)
+    return date_box
 
 
 def _free_port() -> int:
@@ -74,26 +96,32 @@ def app_url():
 
 
 @pytest.fixture(scope="module")
-def page(app_url):
+def browser(app_url):
     if not _open_meteo_reachable():
         pytest.skip("Open-Meteo not reachable from this machine")
-    with playwright.sync_playwright() as p:
+    with playwright.sync_playwright() as p:  # one Playwright per module: nesting is not allowed
         try:
             browser = p.chromium.launch(headless=True)
         except Exception as exc:  # browser binaries not installed
             pytest.skip(f"Chromium not available: {str(exc)[:80]}")
-        page = browser.new_page()
-        page.set_default_timeout(60_000)
-        yield page
+        yield browser
         browser.close()
+
+
+@pytest.fixture
+def page(browser):
+    context = browser.new_context()
+    page = context.new_page()
+    page.set_default_timeout(60_000)
+    yield page
+    context.close()
 
 
 def test_browser_fetches_open_meteo_and_result_renders(page, app_url):
     open_meteo_calls: list[str] = []
     page.on("response", lambda r: open_meteo_calls.append(f"{r.status} {r.url[:60]}") if "open-meteo.com" in r.url else None)
-    page.goto(app_url, wait_until="networkidle")
-
-    page.get_by_role("textbox", name=re.compile("Date")).first.fill(PAST_DATE)
+    date_box = open_app(page, app_url, "Fetch weather & predict", "Date")
+    date_box.fill(PAST_DATE)
     page.get_by_role("button", name="Fetch weather & predict").click()
     page.wait_for_function(f"document.body.innerText.includes('Inputs for Sydney on {PAST_DATE}')", timeout=60_000)
 
@@ -106,7 +134,24 @@ def test_browser_fetches_open_meteo_and_result_renders(page, app_url):
 
 
 def test_browser_error_path_shows_message(page, app_url):
-    page.goto(app_url, wait_until="networkidle")
-    page.get_by_role("textbox", name=re.compile("Date")).first.fill("2031-01-01")
+    date_box = open_app(page, app_url, "Fetch weather & predict", "Date")
+    date_box.fill("2031-01-01")
     page.get_by_role("button", name="Fetch weather & predict").click()
     page.wait_for_function("document.body.innerText.includes('future')", timeout=60_000)
+
+
+def test_spanish_browser_gets_spanish_ui_and_lang_override(browser, app_url):
+    context = browser.new_context(locale="es-AR")
+    page = context.new_page()
+    page.set_default_timeout(60_000)
+    try:
+        date_box = open_app(page, app_url, ES_FETCH, "Fecha")
+        date_box.fill(PAST_DATE)
+        page.get_by_role("button", name=ES_FETCH).click()
+        page.wait_for_function(f"document.body.innerText.includes({ES_BROWSER_NOTE!r})", timeout=60_000)
+        text = page.inner_text("body")
+        assert ES_BAR in text and f"Entradas para Sydney el {PAST_DATE}" in text
+        # explicit override beats the browser language
+        open_app(page, app_url + "?lang=en", "Fetch weather & predict", "Date")
+    finally:
+        context.close()
